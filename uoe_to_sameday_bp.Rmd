@@ -1,0 +1,126 @@
+---
+title: '0405'
+author: "molly"
+date: "4/5/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(ggpmisc)
+library(ggpubr)
+```
+
+
+```{r}
+bp = readxl::read_xlsx('bp.xlsx')
+```
+
+```{r}
+view(bp)
+```
+
+
+```{r}
+myotis = readxl::read_xlsx('myotis.xlsx')
+```
+
+```{r}
+view(myotis)
+```
+
+
+```{r}
+bp = bp %>% 
+         mutate(date_time = ymd_hms(date_time),
+                date_time = with_tz(date_time, tzone = 'America/New_York'))
+```
+
+```{r}
+bp = bp %>%
+       separate(date_time, into = c('date', 'time'), sep = ' ', remove = FALSE)
+```
+
+```{r}
+summary(bp$pressure)
+
+```
+
+```{r}
+bp  = bp %>%
+            group_by(date) %>%
+            summarize(mean_bp = mean(pressure), mean_change = mean(change))
+```
+
+
+```{r}
+myotis$date2 = (myotis$date)
+```
+
+```{r}
+myotis$date2 <- as.character(myotis$date2, format="%Y-%m-%d")
+```
+
+```{r}
+colnames(bp)[1] <- "date2"
+```
+
+```{r}
+bp_myotis  = bp %>%
+    left_join(myotis, by = "date2")
+```
+
+```{r}
+bp_myotis <- na.omit(bp_myotis)
+```
+
+```{r}
+view(bp_myotis)
+```
+
+nknkl
+
+seq.Date( Sys.Date(), length=, by='3 months' )[2]
+
+```{r}
+class(bp_myotis$date)
+```
+
+
+```{r}
+ggplot(data = bp_myotis, aes(x=mean_bp, y=myotis_uoe)) + 
+geom_point(alpha = .3) +
+  geom_smooth(method = "lm") +
+  stat_fit_glance(method = 'lm', geom = 'text', aes(label = paste0('P = ', round(..p.value.., 3))))
+```
+
+
+
+```{r}
+ggplot(data = bp_myotis, aes(x=mean_bp, y=myotis_uoe)) + 
+geom_smooth(method = "lm")
+```
+
+
+```{r}
+ggplot(data = bp_myotis, aes(x=mean_change, y=myotis_uoe)) + 
+geom_smooth(method = "lm")
+```
+
+```{r}
+ggplot(data = bp_myotis, aes(x=mean_change, y=myotis_uoe)) + 
+geom_point(alpha = .3) +
+  geom_smooth(method = "lm") +
+  stat_fit_glance(method = 'lm', geom = 'text', aes(label = paste0('P = ', round(..p.value.., 3))))
+``` 
+
+```{r}
+anova(data = bp_myotis, aes(x=mean_change, y=myotis_uoe), method ='lm') 
+```

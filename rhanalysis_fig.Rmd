@@ -1,0 +1,158 @@
+---
+title: '0327'
+author: "molly"
+date: "3/27/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readxl)
+library(tidyverse)
+library(lubridate)
+library(ggpmisc)
+```
+
+```{r}
+rh = readxl::read_xlsx('rh.xlsx')
+```
+
+```{r}
+myotis = readxl::read_xlsx('myotis.xlsx')
+```
+
+```{r}
+rh = rh %>% 
+         mutate(date_time = ymd_hms(date_time),
+                date_time = with_tz(date_time, tzone = 'America/New_York')) %>%
+         mutate(daynight = if_else(hour(date_time) >= 6 & hour(date_time) < 18, 'day', 'night'))
+```
+
+```{r}
+rh = rh %>%
+       separate(date_time, into = c('date', 'time'), sep = ' ', remove = FALSE)
+```
+
+```{r}
+dt = rh$date[1]
+for(row in 2:nrow(rh)) {
+  if(rh$daynight[row] == 'night') {
+    rh$date[row] = dt
+  } else {
+    dt = rh$date[row]
+  }
+} # for(i)
+```
+
+```{r}
+rh_mean  = rh %>%
+            select(-time) %>%
+            group_by(date, daynight) %>%
+            summarize(mean_rh = mean(rh))
+```
+
+```{r}
+rh_mean %>%
+    filter(daynight == "night")
+```
+
+```{r}
+myotis$date2 = myotis$date
+```
+
+```{r}
+myotis$date2 <- as.character(myotis$date2, format="%Y-%m-%d")
+```
+
+
+```{r}
+colnames(rh_mean)[1] <- "date2"
+```
+
+```{r}
+rh_myotis  = rh_mean %>%
+    left_join(myotis, by = "date2")
+```
+
+```{r}
+rh_myotis <- na.omit(rh_myotis)
+```
+
+```{r}
+rh_myotis$year <- c(format(as.Date(rh_myotis$date, format="%Y/%m/%d"),"%Y"))
+```
+
+#Below are a bunch of figures to visualize the data
+
+```{r}
+ggplot(data = rh_myotis, aes(x=mean_rh, y=myotis_uoe)) + 
+geom_point(alpha = .3) +
+  geom_smooth(method = "lm") +
+  stat_fit_glance(method = 'lm', geom = 'text', aes(label = paste0('P = ', round(..p.value.., 3))))
+```  
+
+```{r}
+ggplot(data = rh_myotis, aes(x=mean_rh, y=myotis_uoe)) + 
+geom_point(alpha = 1, aes(x=mean_rh, y=myotis_uoe,color = date)) +
+  geom_smooth(method = "lm") +
+  stat_fit_glance(method = 'lm', geom = 'text', aes(label = paste0('P = ', round(..p.value.., 3))))
+```  
+
+
+```{r}
+ggplot(data = rh_myotis, aes(x = mean_rh , y = myotis_uoe)) + 
+  geom_smooth(mapping = aes(x = mean_rh , y = myotis_uoe)) +
+  stat_fit_glance(method = , geom = 'text', aes(label = paste0('P = ', round(..p.value.., 3))))
+```
+```{r}
+ggplot(data = rh_myotis, aes(x = mean_rh , y = myotis_uoe)) + 
+  geom_smooth(mapping = aes(x = mean_rh , y = myotis_uoe))
+```
+```{r}
+ggplot(data = rh_myotis, aes(x=mean_rh, y=myotis_uoe)) + 
+geom_smooth(method='lm', formula= y~x)
+stat_fit_glance(method = 'lm', method.args = list(formula = formula), geom = 'text', aes(label = paste("P-value = "), signif(..p.value.., digits = 4)), label.x = 'right', label.y = 0.35, size = 3)
+
+```
+
+
+```{r}
+ggplot(data = rh_myotis) + 
+  geom_point(mapping = aes(x = mean_rh , y = myotis_uoe, color = date))
+```
+
+```{r}
+ggplot(data = rh_myotis) + 
+  geom_smooth(mapping = aes(x = date , y = myotis_uoe))
+```
+
+```{r}
+ggplot(data = rh_myotis) + 
+  geom_point(mapping = aes(x = mean_rh, y = myotis_uoe)) +
+  facet_wrap(~ year, nrow = 2)
+```
+
+```{r}
+ggplot(data = rh_myotis) + 
+  geom_smooth(mapping = aes(x = mean_rh, y = myotis_uoe)) +
+  facet_wrap(~ year, nrow = 2)
+```
+
+```{r}
+ggplot(data = rh_myotis) + 
+  geom_smooth(mapping = aes(x = mean_rh , y = myotis_uoe, linetype = rh_myotis$year, color= year ))
+```
+
+```{r}
+ggplot(data = rh_myotis) + 
+  geom_boxplot(mapping = aes(x = mean_rh , y = myotis_uoe, group=year, color=year ))
+```
+
+
+no error message comes up when it is like this, but it is still not printing p and r values... 
+```{r}
+ggplot(data = rh_myotis, aes(x=mean_rh, y=myotis_uoe)) + 
+geom_smooth(method='lm', formula= y~x)
+stat_fit_glance(method = 'lm', method.args = list(formula = formula), geom = 'text', aes(label = paste("P-value = "), signif(..p.value.., digits = 4)), label.x = 'right', label.y = 0.35, size = 3)
+
+```
